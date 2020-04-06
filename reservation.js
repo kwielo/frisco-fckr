@@ -2,17 +2,17 @@ function app() {
 
   return {
     checkAgainAfter: 500, // miliseconds
-    deliveryDate: '2020/5/25',
+    // deliveryDate: '2020/5/25',
     userId: '527522',
     division: 'WAW',
     features: 'BalanceAmount=1',
-    visitorId: "f269f08c-1fe4-4eac-83fa-ea12ee9cc1cf",
-    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1Mjc1MjIiLCJ2aXNpdG9yX2lkIjoiZjI2OWYwOGMtMWZlNC00ZWFjLTgzZmEtZWExMmVlOWNjMWNmIiwidG9rZW5fdXNhZ2UiOiJhY2Nlc3NfdG9rZW4iLCJqdGkiOiI5MGY1ODFlZS05NDMwLTQwNmMtYjdkMi1lYjliMTQ3YTNmZjkiLCJzY29wZSI6Im9mZmxpbmVfYWNjZXNzIiwibmJmIjoxNTg2MTY4MDY0LCJleHAiOjE1ODYxNjg2NjQsImlhdCI6MTU4NjE2ODA2NCwiaXNzIjoiaHR0cHM6Ly9jb21tZXJjZS5mcmlzY28ucGwvIn0.sKXCdEnevjL40B-vzh90OV6-F918hWU_Mou4z5K5a5Q', // 600 seconds timeout
+    visitorId: "aa28c9bf-bce9-44dd-854b-823844febafb",
+    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1Mjc1MjIiLCJ2aXNpdG9yX2lkIjoiYWEyOGM5YmYtYmNlOS00NGRkLTg1NGItODIzODQ0ZmViYWZiIiwidG9rZW5fdXNhZ2UiOiJhY2Nlc3NfdG9rZW4iLCJqdGkiOiJmMjc0Nzk2My0yNzlmLTQ5OTItYjE1MC05YTZlNGViNjgxYTciLCJzY29wZSI6Im9mZmxpbmVfYWNjZXNzIiwibmJmIjoxNTg2MjA2NzM1LCJleHAiOjE1ODYyMDczMzUsImlhdCI6MTU4NjIwNjczNSwiaXNzIjoiaHR0cHM6Ly9jb21tZXJjZS5mcmlzY28ucGwvIn0.14Gl613H_QrFziXslpDnRYW2OQcgstmdv950SS5ZNtc', // 600 seconds timeout
     getRefreshTokenUrl() {
       return 'https://commerce.frisco.pl/connect/token'
     },
-    getSlotsUrl() {
-      return 'https://commerce.frisco.pl/api/users/'+this.userId+'/calendar/Van/'+this.deliveryDate
+    getSlotsUrl(reservationDate) {
+      return 'https://commerce.frisco.pl/api/users/'+this.userId+'/calendar/Van/'+reservationDate
     },
     getReservationUrl() {
       return 'https://commerce.frisco.pl/api/users/'+this.userId+'/cart/reservation'
@@ -23,9 +23,9 @@ function app() {
     sleep(ms) {
       return new Promise(resolve => setTimeout(resolve, ms));
     },
-    getSlots(callback, errorCallback) {
+    getSlots(reservationDate) {
         const h = new XMLHttpRequest();
-        h.open("GET", this.getSlotsUrl(), false);
+        h.open("GET", this.getSlotsUrl(reservationDate), false);
 
         h.setRequestHeader("Authorization", this.getAuth());
         h.setRequestHeader("x-frisco-division", this.division);
@@ -61,28 +61,35 @@ function app() {
 
       return h;
     },
-    async runner() {
+    async runner(reservationDate, priority, reservation) {
       let self = this;
       let madeReservation = false;
       let errored = false;
       while (!madeReservation) {
-        slotsResponse = this.getSlots();
+        slotsResponse = this.getSlots(reservationDate);
 
         if (slotsResponse.status == 401) {
           console.error("Token timeouted");
-          console.error(slotsResponse);
-          break;
+          return Promise.resolve();
+          // break;
         }
-        console.log(slotsResponse);
+        // console.log(slotsResponse);
         let response = slotsResponse.response;
         let slots = JSON.parse(response);
+        let unavailable = [];
         for (let i = 0; i < slots.length; i++) {
           slot = slots[i];
-          if (slot.canReserve) {
+          if (
+            (slot.canReserve && !reservation.isReserved)
+            || (slot.canReserve && reservation.isReserved && priority < reservation.dayPriority)
+          ) {     
             console.log("free slot!");
 
             reservationResponse = this.makeReservation(slot.deliveryWindow);
             if (reservationResponse.status == 204) {
+              reservation.isReserved = true;
+              reservation.slot = slot;
+              reservation.dayPriority = priority;
               console.info("[!!] RESERVATION SUCCESSFUL");
               console.info("> From: ");
               console.info(new Date(slot.deliveryWindow.startsAt).toString())
@@ -92,18 +99,40 @@ function app() {
             }
             console.log(reservationResponse);
 
-            if (madeReservation) break;
+            if (madeReservation) {
+              return Promise.resolve();
+              // break;
+            }
           } else {
-            console.log("slot "+slot.deliveryWindow.startsAt+ " is closed");
+            unavailable.push(slot.deliveryWindow.startsAt);
+            // console.info("slot "+slot.deliveryWindow.startsAt+ " unavailable");
           }
         }
+        console.info(unavailable.length+"/"+slots.length+" slots unavailable for "+reservationDate+", checking again in: "+this.checkAgainAfter+"ms");
 
         await this.sleep(this.checkAgainAfter);
       }
     }
   }
 }
-app().runner();
+(function() {
+  const reservation = {
+    isReserved: false,
+    dayPriority: null,
+    slot: null
+  };
+  Promise
+    .all([ // list of days with priorities, the lower number the higher priority
+      app().runner('2020/04/08', 1, reservation),
+      app().runner('2020/04/09', 2, reservation),
+      app().runner('2020/04/10', 3, reservation),
+      app().runner('2020/04/11', 4, reservation),
+    ])
+    .then(function (results) {
+      console.log(reservation);
+    });
+})();
+
 
 
 
