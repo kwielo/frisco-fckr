@@ -3,7 +3,7 @@ const axios = require('axios');
 const querystring = require('querystring');
 const uuid = require('uuid');
 
-const checkAgainAfter = 500;
+const checkAgainAfter = 250;
 
 const headers = {
   'X-Frisco-Division': 'WAW',
@@ -27,12 +27,12 @@ async function refreshToken() {
       username: process.env.USERNAME,
       grant_type: 'password'
     });
-  console.log(data);
-
   const url = 'https://commerce.frisco.pl/connect/token';
   const res = await axios.post(url, data, {headers});
+  if (res.status === 200) {
+    console.info(session ? '[i] successfully refreshed token' : '[i] successfully logged in');
+  }
   session = res.data;
-  console.info(res.data);
   setTimeout(refreshToken, 300000);
 }
 
@@ -50,6 +50,7 @@ async function getSlots(date) {
 }
 
 async function makeReservation(data) {
+  console.info('[i] making reservation');
   const reqHeaders = Object.assign(headers, {
     authorization: `Bearer ${session.access_token}`,
     'content-type': 'application/json'
@@ -76,18 +77,16 @@ async function processDay(date, reservation, priority = 1) {
         (slot.canReserve && !reservation.isReserved)
         || (slot.canReserve && reservation.isReserved && priority < reservation.dayPriority)
       ) {
-        console.log("free slot!");
+        console.log("[!] free slot available");
 
         let {status, reservationResponse} = await makeReservation(slot.deliveryWindow);
         if (status === 204) {
           reservation.isReserved = true;
           reservation.slot = slot;
           reservation.dayPriority = priority;
-          console.info("[!!] RESERVATION SUCCESSFUL");
-          console.info("> From: ");
-          console.info(new Date(slot.deliveryWindow.startsAt).toString());
-          console.info("> To: ");
-          console.info(new Date(slot.deliveryWindow.endsAt).toString());
+          console.info("[!] RESERVATION SUCCESSFUL");
+          console.info("[i] From: " + new Date(slot.deliveryWindow.startsAt).toString());
+          console.info("[i] To: " + new Date(slot.deliveryWindow.endsAt).toString());
           madeReservation = true;
         }
 
@@ -98,7 +97,7 @@ async function processDay(date, reservation, priority = 1) {
         unavailable.push(slot.deliveryWindow.startsAt);
       }
     }
-    console.info(`${unavailable.length}/${slots.response.length} slots unavailable for ${date}, checking again in: ${checkAgainAfter}ms`);
+    console.info(`[i] ${unavailable.length}/${slots.response.length} slots unavailable for ${date}, checking again in: ${checkAgainAfter}ms`);
 
     await sleep(checkAgainAfter);
   }
