@@ -1,0 +1,8 @@
+version: '2.0'
+
+services:
+  node:
+    build: .
+    volumes:
+      - ./app:/app
+

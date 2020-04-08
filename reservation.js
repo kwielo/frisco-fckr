@@ -1,13 +1,13 @@
 function app() {
 
   return {
-    checkAgainAfter: 500, // miliseconds
+    checkAgainAfter: 10000, // miliseconds
     // deliveryDate: '2020/5/25',
     userId: '527522',
     division: 'WAW',
     features: 'BalanceAmount=1',
     visitorId: "aa28c9bf-bce9-44dd-854b-823844febafb",
-    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1Mjc1MjIiLCJ2aXNpdG9yX2lkIjoiYWEyOGM5YmYtYmNlOS00NGRkLTg1NGItODIzODQ0ZmViYWZiIiwidG9rZW5fdXNhZ2UiOiJhY2Nlc3NfdG9rZW4iLCJqdGkiOiJmMjc0Nzk2My0yNzlmLTQ5OTItYjE1MC05YTZlNGViNjgxYTciLCJzY29wZSI6Im9mZmxpbmVfYWNjZXNzIiwibmJmIjoxNTg2MjA2NzM1LCJleHAiOjE1ODYyMDczMzUsImlhdCI6MTU4NjIwNjczNSwiaXNzIjoiaHR0cHM6Ly9jb21tZXJjZS5mcmlzY28ucGwvIn0.14Gl613H_QrFziXslpDnRYW2OQcgstmdv950SS5ZNtc', // 600 seconds timeout
+    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1Mjc1MjIiLCJ2aXNpdG9yX2lkIjoiYWEyOGM5YmYtYmNlOS00NGRkLTg1NGItODIzODQ0ZmViYWZiIiwidG9rZW5fdXNhZ2UiOiJhY2Nlc3NfdG9rZW4iLCJqdGkiOiI4NzAzMzY5OC1iN2U4LTQ1OWEtOTExZi1iNzJiODYyYTJlNGQiLCJzY29wZSI6Im9mZmxpbmVfYWNjZXNzIiwibmJmIjoxNTg2MjQ1MzU0LCJleHAiOjE1ODYyNDU5NTQsImlhdCI6MTU4NjI0NTM1NCwiaXNzIjoiaHR0cHM6Ly9jb21tZXJjZS5mcmlzY28ucGwvIn0.Bd0pbZpnpkb189M3_3sffoO9ibJ9CGzGE3RD4krT0Vs', // 600 seconds timeout
     getRefreshTokenUrl() {
       return 'https://commerce.frisco.pl/connect/token'
     },
@@ -31,7 +31,7 @@ function app() {
         h.setRequestHeader("x-frisco-division", this.division);
         h.setRequestHeader("x-frisco-features", this.features);
         h.setRequestHeader("x-frisco-visitorid", this.visitorId);
-        
+
         try {
           h.send();
         } catch (err) {
@@ -52,7 +52,7 @@ function app() {
       h.setRequestHeader("x-frisco-division", this.division);
       h.setRequestHeader("x-frisco-features", this.features);
       h.setRequestHeader("x-frisco-visitorid", this.visitorId);
-      
+
       try {
         h.send(JSON.stringify(data));
       } catch (err) {
@@ -82,7 +82,7 @@ function app() {
           if (
             (slot.canReserve && !reservation.isReserved)
             || (slot.canReserve && reservation.isReserved && priority < reservation.dayPriority)
-          ) {     
+          ) {
             console.log("free slot!");
 
             reservationResponse = this.makeReservation(slot.deliveryWindow);
@@ -123,10 +123,12 @@ function app() {
   };
   Promise
     .all([ // list of days with priorities, the lower number the higher priority
-      app().runner('2020/04/08', 1, reservation),
+      // app().runner('2020/04/07', 0, reservation),
+      // app().runner('2020/04/08', 1, reservation),
       app().runner('2020/04/09', 2, reservation),
       app().runner('2020/04/10', 3, reservation),
       app().runner('2020/04/11', 4, reservation),
+      app().runner('2020/04/14', 5, reservation),
     ])
     .then(function (results) {
       console.log(reservation);
