@@ -3,8 +3,6 @@ const axios = require('axios');
 const querystring = require('querystring');
 const uuid = require('uuid');
 
-const checkAgainAfter = 250;
-
 const headers = {
   'X-Frisco-Division': 'WAW',
   'X-Frisco-Features': 'BalanceAmount=1',
@@ -28,21 +26,38 @@ async function refreshToken() {
       grant_type: 'password'
     });
   const url = 'https://commerce.frisco.pl/connect/token';
-  const res = await axios.post(url, data, {headers});
+  let res;
+  try {
+    res = await axios.post(
+      url,
+      data,
+      {headers: Object.assign(headers, {'content-type': 'application/x-www-form-urlencoded'})}
+    );
+  } catch (e) {
+    console.error(e);
+    Promise.reject();
+  }
   if (res.status === 200) {
-    console.info(session ? '[i] successfully refreshed token' : '[i] successfully logged in');
+    console.info(
+      `[${new Date().toISOString()}]`
+      + (session ? `[i] successfully refreshed token` : `[i] successfully logged in as ${process.env.USERNAME}`));
   }
   session = res.data;
-  setTimeout(refreshToken, 300000);
+  session.acquired_at = Date.now();
+  session.expires_at = Date.now() + (session.expires_in*1000);
 }
 
 async function getSlots(date) {
-  const reqHeaders = Object.assign(headers, {
-    authorization: `Bearer ${session.access_token}`,
-    'content-type': 'application/json'
-  });
   const url = `https://commerce.frisco.pl/api/users/${session.user_id}/calendar/Van/${date}`;
-  const res = await axios.get(url, {headers: reqHeaders});
+  const res = await axios.get(
+    url,
+    {
+      headers: Object.assign(headers, {
+        authorization: `Bearer ${session.access_token}`,
+        'content-type': 'application/json'
+      })
+    }
+  );
   return {
     status: res.status,
     response: res.data
@@ -50,13 +65,18 @@ async function getSlots(date) {
 }
 
 async function makeReservation(data) {
-  console.info('[i] making reservation');
-  const reqHeaders = Object.assign(headers, {
-    authorization: `Bearer ${session.access_token}`,
-    'content-type': 'application/json'
-  });
+  console.info(`[${new Date().toISOString()}][i] making reservation`);
   const url = `https://commerce.frisco.pl/api/users/${session.user_id}/cart/reservation`;
-  const res = await axios.post(url,  JSON.stringify(data), {headers: reqHeaders});
+  const res = await axios.post(
+    url,
+    JSON.stringify(data),
+    {
+      headers: Object.assign(headers, {
+        authorization: `Bearer ${session.access_token}`,
+        'content-type': 'application/json'
+      })
+    }
+  );
   return {
     status: res.status,
     response: res.data
@@ -64,8 +84,14 @@ async function makeReservation(data) {
 }
 
 async function processDay(date, reservation, priority = 1) {
+  	
   let madeReservation = false;
   while (!madeReservation) {
+    if ((Date.now()-5000) > session.expires_at) {
+      // console.log(Date.now(),session.expires_at);
+      await refreshToken();
+    }
+
     const slots = await getSlots(date);
     if (slots.status === 401) {
       return Promise.reject();
@@ -97,11 +123,13 @@ async function processDay(date, reservation, priority = 1) {
         unavailable.push(slot.deliveryWindow.startsAt);
       }
     }
-    console.info(`[i] ${unavailable.length}/${slots.response.length} slots unavailable for ${date}, checking again in: ${checkAgainAfter}ms`);
+    console.info(`[${new Date().toISOString()}][i] ${unavailable.length}/${slots.response.length} slots unavailable for ${date}, checking again in: ${checkAgainAfter}ms`);
 
     await sleep(checkAgainAfter);
   }
 }
+
+const checkAgainAfter = 500;
 
 (async function () {
   await refreshToken();
@@ -114,8 +142,8 @@ async function processDay(date, reservation, priority = 1) {
 
   return Promise
     .all([
-      processDay('2020/04/08', reservation, 1),
-      processDay('2020/05/28', reservation, 2),
+      processDay('2020/04/11', reservation, 1),
+      processDay('2020/04/14', reservation, 2),
     ])
     .then(res => console.log(res))
     .catch(err => console.error(err));
