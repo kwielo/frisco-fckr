@@ -52,6 +52,8 @@ module.exports = async function processDay(date, reservation, priority = 1) {
           print('i', `From: ${winStart}`);
           print('i', `To: ${winEnd}`);
 
+          summary(reservation);
+
           return Promise.resolve();
         }
       } else {
