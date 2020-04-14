@@ -10,4 +10,4 @@ RUN npm install
 COPY . .
 COPY ./.env .
 
-CMD ["screen", "-d", "-m", "-S", "frisco-order", "sh", "run.sh"]
+CMD ["sh", "run.sh"]

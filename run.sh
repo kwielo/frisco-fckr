@@ -1,3 +1,3 @@
 #!/bin/sh
 
-node app/index.js
+screen -dmS frisco node app/index.js
