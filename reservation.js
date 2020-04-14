@@ -68,7 +68,7 @@ function app() {
       while (!madeReservation) {
         slotsResponse = this.getSlots(reservationDate);
 
-        if (slotsResponse.status == 401) {
+        if (slotsResponse.status === 401) {
           console.error("Token timeouted");
           return Promise.resolve();
           // break;
@@ -86,7 +86,7 @@ function app() {
             console.log("free slot!");
 
             reservationResponse = this.makeReservation(slot.deliveryWindow);
-            if (reservationResponse.status == 204) {
+            if (reservationResponse.status === 204) {
               reservation.isReserved = true;
               reservation.slot = slot;
               reservation.dayPriority = priority;
