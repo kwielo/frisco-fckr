@@ -4,9 +4,10 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
+RUN apk --no-cache add screen
 RUN npm install
 
 COPY . .
 COPY ./.env .
 
-CMD ["sh", "run.sh"]
+CMD ["screen", "-d", "-m", "-S", "frisco-order", "sh", "run.sh"]
