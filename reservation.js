@@ -3,11 +3,11 @@ function app() {
   return {
     checkAgainAfter: 10000, // miliseconds
     // deliveryDate: '2020/5/25',
-    userId: '527522',
+    userId: 'user_id', // replace
     division: 'WAW',
     features: 'BalanceAmount=1',
-    visitorId: "aa28c9bf-bce9-44dd-854b-823844febafb",
-    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1Mjc1MjIiLCJ2aXNpdG9yX2lkIjoiYWEyOGM5YmYtYmNlOS00NGRkLTg1NGItODIzODQ0ZmViYWZiIiwidG9rZW5fdXNhZ2UiOiJhY2Nlc3NfdG9rZW4iLCJqdGkiOiI4NzAzMzY5OC1iN2U4LTQ1OWEtOTExZi1iNzJiODYyYTJlNGQiLCJzY29wZSI6Im9mZmxpbmVfYWNjZXNzIiwibmJmIjoxNTg2MjQ1MzU0LCJleHAiOjE1ODYyNDU5NTQsImlhdCI6MTU4NjI0NTM1NCwiaXNzIjoiaHR0cHM6Ly9jb21tZXJjZS5mcmlzY28ucGwvIn0.Bd0pbZpnpkb189M3_3sffoO9ibJ9CGzGE3RD4krT0Vs', // 600 seconds timeout
+    visitorId: "visitor_id", // replace
+    token: 'jwt_token', // replace // 600 seconds timeout
     getRefreshTokenUrl() {
       return 'https://commerce.frisco.pl/connect/token'
     },
